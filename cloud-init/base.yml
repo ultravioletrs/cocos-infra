@@ -1,1 +1,507 @@
-test: 1
+package_update: true
+package_upgrade: false
+
+users:
+  - default
+  - name: cocos_user
+    gecos: Default User
+    groups:
+      - sudo
+      - docker
+    sudo:
+      - ALL=(ALL:ALL) ALL
+    shell: /sbin/nologin
+
+packages:
+  - curl
+  - make
+  - git
+  - python3
+  - python3-dev
+  - python3-venv
+  - python3-pip
+  - net-tools
+
+write_files:
+  - path: /etc/cocos/certs/cert.pem
+    #content:
+    # This is a placeholder for the COCOS agent certificate.
+    content: |
+      -----BEGIN CERTIFICATE-----
+      MIIEeDCCA2CgAwIBAgIQajyOhqh6hUzeoGc6bu1t1jANBgkqhkiG9w0BAQsFADCC
+      AQwxDzANBgNVBAYTBkZyYW5jZTEOMAwGA1UECBMFUGFyaXMxFjAUBgNVBAcTDVF1
+      YWkgZGUgVmFsbXkxFDASBgNVBBETCzc1MDEwIFBhcmlzMRkwFwYDVQQKExBBYnN0
+      cmFjdE1hY2hpbmVzMRwwGgYDVQQLDBNBYnN0cmFjdE1hY2hpbmVzX2NhMScwJQYD
+      VQQDDB5BYnN0cmFjdE1hY2hpbmVzX1NlbGZzaWduZWRfY2ExMDAuBgNVBAUTJzIz
+      NzI4OTMwODUyNTUxODA1NTAxMTIzNTQ3MjExMDk4NjY0NDM5NzEnMCUGCSqGSIb3
+      DQEJAQwYaW5mb0BhYnN0cmFjdG1hY2hpbmVzLnJzMB4XDTI1MDgwODEwMTUzMloX
+      DTI1MDkwNzEwMTUzMlowPDEUMBIGA1UEChMLVWx0cmF2aW9sZXQxDjAMBgNVBAsT
+      BXByaXNtMRQwEgYDVQQDEwtVbHRyYXZpb2xldDCCASIwDQYJKoZIhvcNAQEBBQAD
+      ggEPADCCAQoCggEBALta8Z4zT41DhxH+gCFaSZ5MRBxgtz8XIHVO54emKDlJkRV0
+      IaPcuiwuTRIGL7oDth+ik00qLQ4eFspagoffHIPtUGL1UvbjPT65mdVYwWOWFG5/
+      lc3h1OkuLdBC9r4h8RYJEw01yC9Xeu20Zlyh36hFNcbo0N7kf+kyySsDE9a372VR
+      qpFkGghbv6BfzyMJlJ32pguka5PA7sr0FCILSEXAGjZr48COWcWIwYAdFHaGbZ57
+      65URsoDd68u1f1GlZrq131QNbEYo6OLF7Rk/SHG5BpYVQoIoWboBExd8Y0ciqca0
+      bPYesXJ4B+4yqSyADAa0lAp+t2fGnfRyk/7a7r0CAwEAAaOBozCBoDAOBgNVHQ8B
+      Af8EBAMCBaAwHQYDVR0lBBYwFAYIKwYBBQUHAwIGCCsGAQUFBwMBMAwGA1UdEwEB
+      /wQCMAAwHwYDVR0jBBgwFoAU8aJ2B0RwSR72AtcA94dGS4R/OTowQAYDVR0RBDkw
+      N4IJbG9jYWxob3N0ghRwcmlzbS51bHRyYXZpb2xldC5yc4IOMTA5LjkyLjE5NS4x
+      NTOHBG1cw5kwDQYJKoZIhvcNAQELBQADggEBACmZ7n4l+VL2XwGbqIyGMN9bL2Mk
+      p7J4qQbkSnWuU5SpEN8r7DdM3hYA8klI4YI7UYrr+FIMnkGH3yH/bVmaGS2mzjfX
+      VrAx488Z7vPLo95iCAwWwMhgITbXNeiZ9OyCuRV7CkfkMM/Cl7B4+zhvZb88fk/9
+      Lm1kcilpkKFaPN3C1Hz2Jt6fAYUsMof5tMBCJ8sBpi6xfdgTQiP3K02VpbMY2vFW
+      Xn1VS5MrwcE3gJy9RHPt4kUCre7RV9G6etau/kdGvzn4oG491BBciknzi+KRMRM/
+      hC7x0Y16VXd7f2Zrum4zEUFOnljkqGWMmESZYROGGcfJ5R7kgL4+UJ2jZeI=
+      -----END CERTIFICATE-----
+    permissions: "0644"
+
+  - path: /etc/cocos/certs/ca.pem
+    #content: 
+    # This is a placeholder for the COCOS agent CA certificate.
+    content: |
+      -----BEGIN CERTIFICATE-----
+      MIIFbTCCBFWgAwIBAgIRALKEQiuQNmWdAUKriL2Ky60wDQYJKoZIhvcNAQELBQAw
+      ggEMMQ8wDQYDVQQGEwZGcmFuY2UxDjAMBgNVBAgTBVBhcmlzMRYwFAYDVQQHEw1R
+      dWFpIGRlIFZhbG15MRQwEgYDVQQREws3NTAxMCBQYXJpczEZMBcGA1UEChMQQWJz
+      dHJhY3RNYWNoaW5lczEcMBoGA1UECwwTQWJzdHJhY3RNYWNoaW5lc19jYTEnMCUG
+      A1UEAwweQWJzdHJhY3RNYWNoaW5lc19TZWxmc2lnbmVkX2NhMTAwLgYDVQQFEycy
+      NDc2MzI2MTE1MDA3Mjk5MjgzNDQ4NDc3Mjk2NjEwMzE4MjUzNTcxJzAlBgkqhkiG
+      9w0BCQEMGGluZm9AYWJzdHJhY3RtYWNoaW5lcy5yczAeFw0yNTA4MDQxMjQ0NDFa
+      Fw0yNTExMDIxMjQ0NDFaMIIBDDEPMA0GA1UEBhMGRnJhbmNlMQ4wDAYDVQQIEwVQ
+      YXJpczEWMBQGA1UEBxMNUXVhaSBkZSBWYWxteTEUMBIGA1UEERMLNzUwMTAgUGFy
+      aXMxGTAXBgNVBAoTEEFic3RyYWN0TWFjaGluZXMxHDAaBgNVBAsME0Fic3RyYWN0
+      TWFjaGluZXNfY2ExJzAlBgNVBAMMHkFic3RyYWN0TWFjaGluZXNfU2VsZnNpZ25l
+      ZF9jYTEwMC4GA1UEBRMnMjM3Mjg5MzA4NTI1NTE4MDU1MDExMjM1NDcyMTEwOTg2
+      NjQ0Mzk3MScwJQYJKoZIhvcNAQkBDBhpbmZvQGFic3RyYWN0bWFjaGluZXMucnMw
+      ggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQDYJk5mPDi35gcoYd7sLc0l
+      rIuuhuWYXyGmpRFF3mkuXxbdQtkWDi1VfJbt0YuKVICmW2ct1aFGM2EODdm4bGtx
+      KM7IWjHg/XTGveNKdJ8Lrw/xVoNVSc2X5LWNaeSRGRlCdn2kHLfzQR91lwLmpBNh
+      dXwkrZJut1W4y2lnBgsFT9u1iOZmU2jRZ8rz093esDizY+kp6p//Ny+uTvSvRZC5
+      eCvuNIFVX2HOm18tLfvq0pWlWtcg1wLTu2lfN6R6vYK/igSYqOCunpUTzWlMlOWd
+      qjWy8QudfDRmTMfkANiQNZeKclD++21rh8ZFAOyhrGrEOoh8x6fJzQiL6YQwXdyj
+      AgMBAAGjgcUwgcIwDgYDVR0PAQH/BAQDAgGmMB0GA1UdJQQWMBQGCCsGAQUFBwMB
+      BggrBgEFBQcDAjAPBgNVHRMBAf8EBTADAQH/MB0GA1UdDgQWBBTxonYHRHBJHvYC
+      1wD3h0ZLhH85OjAfBgNVHSMEGDAWgBQAKEJD2GRyag3VtfLu3edgI1W3iTBABgNV
+      HREEOTA3gglsb2NhbGhvc3SCFHByaXNtLnVsdHJhdmlvbGV0LnJzgg4xMDkuOTIu
+      MTk1LjE1M4cEbVzDmTANBgkqhkiG9w0BAQsFAAOCAQEAKsHSihJo+b7GmPXMndOc
+      YBzfZUuXgpE2w367G3eoESCumyVHSPKdBHhQ5tu8NCE30Sf2Ghl6zraBFuzdnqvI
+      YmKEoM0UgLUyJj/weWeJJHamb7NFesDzAoK1PBryPK8HDIk19DtPj6pHK1iaCw56
+      eqnXXo3hW4/aqLY6BtDwHk1S3dm0sXNmhO/1/aQGecDn03/N82AgF7cjV2QJfWGw
+      9864l1JAkWRy0mSxVxfUGWqUlV3DCcNcEy52HLkoLbDb2yqMtaLRq8Rbg0ipP/wc
+      kcXR6DrKuyasAJDy10/kQ6djOiQKrzuJ6vHC2Wdml/uAGwkJDoGp+02jrVj4U/WB
+      Xg==
+      -----END CERTIFICATE-----
+      -----BEGIN CERTIFICATE-----
+      MIIFTDCCBDSgAwIBAgIRALpMTmEhn7U7RFJDLeq9P80wDQYJKoZIhvcNAQELBQAw
+      ggEMMQ8wDQYDVQQGEwZGcmFuY2UxDjAMBgNVBAgTBVBhcmlzMRYwFAYDVQQHEw1R
+      dWFpIGRlIFZhbG15MRQwEgYDVQQREws3NTAxMCBQYXJpczEZMBcGA1UEChMQQWJz
+      dHJhY3RNYWNoaW5lczEcMBoGA1UECwwTQWJzdHJhY3RNYWNoaW5lc19jYTEnMCUG
+      A1UEAwweQWJzdHJhY3RNYWNoaW5lc19TZWxmc2lnbmVkX2NhMTAwLgYDVQQFEycy
+      NDc2MzI2MTE1MDA3Mjk5MjgzNDQ4NDc3Mjk2NjEwMzE4MjUzNTcxJzAlBgkqhkiG
+      9w0BCQEMGGluZm9AYWJzdHJhY3RtYWNoaW5lcy5yczAeFw0yNTA4MDQxMjQ0NDBa
+      Fw0yNjA4MDQxMjQ0NDBaMIIBDDEPMA0GA1UEBhMGRnJhbmNlMQ4wDAYDVQQIEwVQ
+      YXJpczEWMBQGA1UEBxMNUXVhaSBkZSBWYWxteTEUMBIGA1UEERMLNzUwMTAgUGFy
+      aXMxGTAXBgNVBAoTEEFic3RyYWN0TWFjaGluZXMxHDAaBgNVBAsME0Fic3RyYWN0
+      TWFjaGluZXNfY2ExJzAlBgNVBAMMHkFic3RyYWN0TWFjaGluZXNfU2VsZnNpZ25l
+      ZF9jYTEwMC4GA1UEBRMnMjQ3NjMyNjExNTAwNzI5OTI4MzQ0ODQ3NzI5NjYxMDMx
+      ODI1MzU3MScwJQYJKoZIhvcNAQkBDBhpbmZvQGFic3RyYWN0bWFjaGluZXMucnMw
+      ggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQCw6+YczGfbTThlimzHvorv
+      CWRIp0qbMKVnWWS5XNRjztNDF+SutEpuZCAf9OvB7xeY4Y3BFAcw1kV2Hy4URAcj
+      J4r6Ua+kfYnTImMf+NHqZyR9Qzvk4lKPrS9JRt0XySRKvV3A2PblcnPjOgZkcJXF
+      C9e4BYNKnxEL9zrS0Dw/OIs0Fm41o7pVXvCTArE6ahh9sv/18x/fQ8qz5amhQ24v
+      G+e5zyN5bgxyBXYMp5RuCCgl69CgDSuuslsk27D5sHyJGTz9beTKY15SISpEyJLM
+      iX/WVs2je5YBHRS4dEj+pyABwuUEUGLl1irnZHiP7lOsoEjxiVdc25e+AV3ptWxp
+      AgMBAAGjgaQwgaEwDgYDVR0PAQH/BAQDAgGmMB0GA1UdJQQWMBQGCCsGAQUFBwMB
+      BggrBgEFBQcDAjAPBgNVHRMBAf8EBTADAQH/MB0GA1UdDgQWBBQAKEJD2GRyag3V
+      tfLu3edgI1W3iTBABgNVHREEOTA3gglsb2NhbGhvc3SCFHByaXNtLnVsdHJhdmlv
+      bGV0LnJzgg4xMDkuOTIuMTk1LjE1M4cEbVzDmTANBgkqhkiG9w0BAQsFAAOCAQEA
+      a0ZZ5AK4BHcb22Q21Av0JzKid3bKiyoBzOTIhyY6+jwmzOhmJNAg9vcSWfu+g9mt
+      yGQmxLNLccrrsz74nNKnzMnIZDrKWv8JSjwqLW3siKU1T9pKld1H+8ZP+H691lUj
+      hmpe68Q5Fc4nvaIfzlAfPWWZx/G1QNe/+826G9NzTku9wfx9AHVUxDE+kYyN7/Mp
+      5nVgcnsBA7vwPuWseAUbqya1mpZvI1qlGPQX1kAa7iMQxeYb8VuSd0fZX3lK8G4z
+      tqsSuHV1iE2+T/wm1mN7m4sVUe3MRG/sQe2M7grm2s02V3HPKeKqOnyMkqaiekoe
+      cKx1aj+yUFqYEoneXWFfFQ==
+      -----END CERTIFICATE-----
+    permissions: "0644"
+
+  - path: /etc/cocos/certs/key.pem
+    #content:
+    # This is a placeholder for the COCOS agent private key.
+    content: |
+      -----BEGIN RSA PRIVATE KEY-----
+      MIIEowIBAAKCAQEAu1rxnjNPjUOHEf6AIVpJnkxEHGC3PxcgdU7nh6YoOUmRFXQh
+      o9y6LC5NEgYvugO2H6KTTSotDh4WylqCh98cg+1QYvVS9uM9PrmZ1VjBY5YUbn+V
+      zeHU6S4t0EL2viHxFgkTDTXIL1d67bRmXKHfqEU1xujQ3uR/6TLJKwMT1rfvZVGq
+      kWQaCFu/oF/PIwmUnfamC6Rrk8DuyvQUIgtIRcAaNmvjwI5ZxYjBgB0UdoZtnnvr
+      lRGygN3ry7V/UaVmurXfVA1sRijo4sXtGT9IcbkGlhVCgihZugETF3xjRyKpxrRs
+      9h6xcngH7jKpLIAMBrSUCn63Z8ad9HKT/truvQIDAQABAoIBAATKkptFHKe0LmQb
+      ahNwR6mwsZ04K/eFE+NsHSeu7CBq7TbrPWD/aBNxK69mURoktieg9LtodLaDtnl+
+      TxBCeGw3SXL+axy9Ove7r19xYaC2Wddpk98sA1HjSHCnBcBfBddWbBJOacwsJIyn
+      rGZ6DUo0Wue3VIAev9aq4dIjxgIbrs/1hkee+bXbuUCXW6iQf3hhGvvjYE0CMNo6
+      sTGskCcxdXupkTUF0iOKvRSUG/ALB3XUln/bBpFrbeE/vrjcNXeW/+dH7IilMeL6
+      mFu8LjcWQI178RmFjny3plpM/iu70z5Id6TnUruIRmm0SaLFcImQmojRjKTBBIgI
+      d8yJRNECgYEA9n0Dp6gFfm3vitpBmWBDE/HFqFfGpjkJ9r/Vh5jGfUdodHRQX9D3
+      dri4gE2f5+Q9OLNlsVUXfjg7dimWBHp/Xqemn2JNbkwNXU30QrhYjBNKWJD4bF1a
+      /eTrsgQmweKHaJAh2HN6VP5J5kFm2vu1JyNMsQSsnX4b1iJx3p2brk8CgYEAwpXF
+      a9Muv4YKld8TLJumHY9jMEMV87reZfSVKrlEg4vX2YUnmiWBBQ6DLSOkzxGG/cyH
+      0bRw+Y/QY8+yuuaWGJoDt/VxNERiCDHEU0N99emp/+5uUB2s+bp8KmaHDDQIxrII
+      0MmsXASF0Lk209VJeOWs6Ya5cFHkBCWN3sXlOzMCgYEA429QywcfIpxf1hgzRUls
+      O1/vyLhNRJ0G05YIedh+9aPI/wNAElknrXUeUMzPSlHwJ3xozeq9BarvOsV+dd1t
+      3zIEbbZvyeEEx94hDts4YO9/vx7tClhNmE39KMHp3SafWNz9TdKnwvrrxzj7pf1x
+      Fo7cuc2dVKjDGJ+pwAZfWsMCgYBRbh/6KZxspgmUApChoFl6EWFu9wQexVsAy8QI
+      5xNXAZTJAMI77en6VcJrh3kW9rzJRWipR5vntFl/C5I+SPUTQpC/0UUYnG1yBHGm
+      bp4t5SUxZ3RerqyOrY38qH9nifcKP8MUrPEmaPYfDQN2ztE6eNNNvwWnjX2ghp7C
+      VYrCpQKBgEo6daP2Yq0xAljCO17m4o7ErbB75dlaBr/762wYQ0oIRC2GEI3NqJAJ
+      TEO+KJ2SDwkrUyL2b4IpdvRVxiwzmkG6rARtuCu0Ctb/K7vXjGeyxDDqPGr+FDgx
+      0C5XkQI/6Soe79JqE1WCzAOjWjE+4hsnnwRuMKcLaHiSXezzv+Yd
+      -----END RSA PRIVATE KEY-----
+    permissions: "0600"
+
+  - path: /etc/cocos/environment
+    #AGENT_CVM_GRPC_URL=# Add computation management server gRPC URL here
+    content: |
+      AGENT_CVM_GRPC_URL=prism.ultraviolet.rs:7018
+      AGENT_CVM_GRPC_CLIENT_CERT=/etc/cocos/certs/cert.pem
+      AGENT_CVM_GRPC_SERVER_CA_CERTS=/etc/cocos/certs/ca.pem
+      AGENT_CVM_GRPC_CLIENT_KEY=/etc/cocos/certs/key.pem
+      AGENT_LOG_LEVEL=info
+    permissions: "0644"
+
+  - path: /etc/systemd/system/cocos-agent.service
+    content: |
+      [Unit]
+      Description=Cocos AI agent
+      After=network.target
+      Before=docker.service
+
+      [Service]
+      Type=simple
+      User=root
+      WorkingDirectory=/cocos
+      StandardOutput=file:/var/log/cocos/agent.stdout
+      StandardError=file:/var/log/cocos/agent.stderr
+      EnvironmentFile=/etc/cocos/environment
+      ExecStartPre=/cocos_init/agent_setup.sh
+      ExecStart=/cocos_init/agent_start_script.sh
+      Restart=always
+      RestartSec=10
+      StartLimitInterval=300
+      StartLimitBurst=5
+
+      [Install]
+      WantedBy=multi-user.target
+    permissions: "0644"
+
+  - path: /cocos_init/agent_setup.sh
+    content: |
+      #!/bin/bash
+      set -e
+
+      WORK_DIR="/cocos"
+      LOG_FILE="/var/log/cocos/setup.log"
+
+      # Ensure log directory exists
+      mkdir -p /var/log/cocos
+
+      echo "$(date): Starting agent setup..." | tee -a "$LOG_FILE"
+
+      # Network interface setup
+      IFACES=$(ip link show | grep -vE 'LOOPBACK|sit*' | awk -F': ' '{print $2}')
+
+      for IFACE in $IFACES; do
+          STATE=$(ip link show $IFACE | grep DOWN || true)
+          if [ -n "$STATE" ]; then
+              echo "$(date): Bringing up interface $IFACE" | tee -a "$LOG_FILE"
+              ip link set $IFACE up
+          fi
+
+          IP_ADDR=$(ip addr show $IFACE | grep 'inet ' || true)
+          if [ -z "$IP_ADDR" ]; then
+              echo "$(date): Getting IP for interface $IFACE" | tee -a "$LOG_FILE"
+              dhclient $IFACE || echo "$(date): DHCP failed for $IFACE" | tee -a "$LOG_FILE"
+          fi
+      done
+
+      # Create work directory
+      if [ ! -d "$WORK_DIR" ]; then
+          mkdir -p $WORK_DIR
+          echo "$(date): Created work directory $WORK_DIR" | tee -a "$LOG_FILE"
+      fi
+
+      # Resize root filesystem
+      ROOT_DEV=$(findmnt / -o SOURCE -n)
+      if resize2fs "$ROOT_DEV" 2>/dev/null; then
+          echo "$(date): Root filesystem resized successfully" | tee -a "$LOG_FILE"
+      else
+          echo "$(date): Failed to resize root filesystem or already at maximum size" | tee -a "$LOG_FILE"
+      fi
+
+      # Wait for Docker to be ready
+      echo "$(date): Waiting for Docker to be ready..." | tee -a "$LOG_FILE"
+      for i in {1..30}; do
+          if docker info >/dev/null 2>&1; then
+              echo "$(date): Docker is ready" | tee -a "$LOG_FILE"
+              break
+          fi
+          echo "$(date): Docker not ready, waiting... (attempt $i/30)" | tee -a "$LOG_FILE"
+          sleep 2
+      done
+
+      echo "$(date): Agent setup completed successfully" | tee -a "$LOG_FILE"
+    permissions: "0755"
+
+  - path: /cocos_init/agent_start_script.sh
+    content: |
+      #!/bin/bash
+      set -e
+
+      LOG_FILE="/var/log/cocos/agent.log"
+      echo "$(date): Starting COCOS agent..." | tee -a "$LOG_FILE"
+
+      # Configure Docker daemon
+      mkdir -p /etc/systemd/system/docker.service.d
+
+      tee /etc/systemd/system/docker.service.d/override.conf > /dev/null <<EOF
+      [Service]
+      Environment=DOCKER_RAMDISK=true
+      EOF
+
+      systemctl daemon-reload
+
+      NUM_OF_PERMITED_IFACE=1
+
+      NUM_OF_IFACE=$(ip route | grep -Eo 'dev [a-z0-9]+' | awk '{ print $2 }' | grep -v '^docker' | sort | uniq | wc -l)
+
+      if [ $NUM_OF_IFACE -gt $NUM_OF_PERMITED_IFACE ]; then
+          echo "$(date): ERROR: More than one network interface in the VM" | tee -a "$LOG_FILE"
+          exit 1
+      fi
+
+      DEFAULT_IFACE=$(route | grep '^default' | grep -o '[^ ]*$')
+      AGENT_GRPC_HOST=$(ip -4 addr show $DEFAULT_IFACE | grep inet | awk '{print $2}' | cut -d/ -f1)
+
+      export AGENT_GRPC_HOST
+      echo "$(date): Agent GRPC host set to: $AGENT_GRPC_HOST" | tee -a "$LOG_FILE"
+
+      echo "$(date): Executing COCOS agent binary..." | tee -a "$LOG_FILE"
+      exec /bin/cocos-agent
+    permissions: "0755"
+  
+  - path: /cocos_init/linux_ima_init.sh
+    content: |
+      #!/bin/bash
+      
+      GRUB_FILE="/etc/default/grub"
+      LOG_FILE="/var/log/cocos/ima_setup.log"
+      REBOOT_FLAG="/var/lib/cloud/ima-reboot-required"
+      
+      mkdir -p /var/log/cocos
+      echo "$(date): Starting IMA setup..." | tee -a "$LOG_FILE"
+      
+      if ! grep -q '^GRUB_CMDLINE_LINUX=.*ima_policy' "$GRUB_FILE"; then
+        echo "$(date): Setting up IMA policy for next boot" | tee -a "$LOG_FILE"
+        NEW_PARAMS='ima_policy=tcb'
+        
+        # Backup original GRUB config
+        cp "$GRUB_FILE" "$GRUB_FILE.backup"
+        
+        # Modify the GRUB_CMDLINE_LINUX line
+        sed -i -E \
+            "s#^(GRUB_CMDLINE_LINUX=\")(.*)(\")#\1\2 $NEW_PARAMS\3#" \
+            "$GRUB_FILE"
+      
+        echo "$(date): Updated GRUB_CMDLINE_LINUX:" | tee -a "$LOG_FILE"
+        grep "^GRUB_CMDLINE_LINUX=" "$GRUB_FILE" | tee -a "$LOG_FILE"
+        
+        if update-grub; then
+            echo "$(date): GRUB updated successfully" | tee -a "$LOG_FILE"
+            # Create reboot flag
+            touch "$REBOOT_FLAG"
+            echo "$(date): IMA policy will be active after reboot" | tee -a "$LOG_FILE"
+            return 0
+        else
+            echo "$(date): ERROR: Failed to update GRUB" | tee -a "$LOG_FILE"
+            return 1
+        fi
+      else
+        echo "$(date): IMA policy already configured, warming up measurement cache..." | tee -a "$LOG_FILE"
+        # IMA is already active, warm up the measurement cache
+        find / -fstype ext4 -type f -uid 0 -exec dd if='{}' of=/dev/null count=0 status=none \; 2>/dev/null || true
+        echo "$(date): IMA cache warmed up" | tee -a "$LOG_FILE"
+      fi
+    permissions: "0755"
+
+  - path: /cocos_init/verify_setup.sh
+    content: |
+      #!/bin/bash
+      
+      LOG_FILE="/var/log/cocos/verification.log"
+      mkdir -p /var/log/cocos
+      
+      echo "$(date): === COCOS Setup Verification ===" | tee -a "$LOG_FILE"
+      
+      # Check cocos-agent binary
+      if [ -f /bin/cocos-agent ]; then
+          echo "$(date): ✓ COCOS agent binary installed" | tee -a "$LOG_FILE"
+      else
+          echo "$(date): ✗ COCOS agent binary missing" | tee -a "$LOG_FILE"
+          exit 1
+      fi
+      
+      # Check WasmEdge
+      if command -v wasmedge >/dev/null 2>&1; then
+          VERSION=$(wasmedge --version 2>&1 | head -1)
+          echo "$(date): ✓ WasmEdge installed: $VERSION" | tee -a "$LOG_FILE"
+      else
+          echo "$(date): ✗ WasmEdge not found" | tee -a "$LOG_FILE"
+          exit 1
+      fi
+      
+      # Check Docker
+      if systemctl is-active --quiet docker; then
+          VERSION=$(docker --version)
+          echo "$(date): ✓ Docker service running: $VERSION" | tee -a "$LOG_FILE"
+      else
+          echo "$(date): ✗ Docker service not running" | tee -a "$LOG_FILE"
+          exit 1
+      fi
+      
+      # Check cocos-agent service
+      if systemctl is-enabled --quiet cocos-agent.service; then
+          echo "$(date): ✓ COCOS agent service enabled" | tee -a "$LOG_FILE"
+      else
+          echo "$(date): ✗ COCOS agent service not enabled" | tee -a "$LOG_FILE"
+      fi
+      
+      echo "$(date): === Setup verification complete ===" | tee -a "$LOG_FILE"
+    permissions: "0755"
+
+  # Post-reboot service starter
+  - path: /cocos_init/post_reboot_setup.sh
+    content: |
+      #!/bin/bash
+      
+      LOG_FILE="/var/log/cocos/post_reboot.log"
+      REBOOT_FLAG="/var/lib/cloud/ima-reboot-required"
+      
+      mkdir -p /var/log/cocos
+      echo "$(date): Post-reboot setup starting..." | tee -a "$LOG_FILE"
+      
+      # Check if this was an IMA reboot
+      if [ -f "$REBOOT_FLAG" ]; then
+          echo "$(date): Detected post-IMA reboot, cleaning up..." | tee -a "$LOG_FILE"
+          rm -f "$REBOOT_FLAG"
+          
+          # Warm up IMA measurement cache
+          echo "$(date): Warming up IMA measurement cache..." | tee -a "$LOG_FILE"
+          find / -fstype ext4 -type f -uid 0 -exec dd if='{}' of=/dev/null count=0 status=none \; 2>/dev/null || true
+          echo "$(date): IMA cache warmed up" | tee -a "$LOG_FILE"
+      fi
+      
+      # Ensure Docker is running
+      if ! systemctl is-active --quiet docker; then
+          echo "$(date): Starting Docker service..." | tee -a "$LOG_FILE"
+          systemctl start docker
+      fi
+      
+      # Start cocos-agent service if not running
+      if ! systemctl is-active --quiet cocos-agent.service; then
+          echo "$(date): Starting cocos-agent service..." | tee -a "$LOG_FILE"
+          systemctl start cocos-agent.service
+      fi
+      
+      echo "$(date): Post-reboot setup completed" | tee -a "$LOG_FILE"
+    permissions: "0755"
+
+  # Systemd service for post-reboot tasks
+  - path: /etc/systemd/system/cocos-post-reboot.service
+    content: |
+      [Unit]
+      Description=COCOS post-reboot setup
+      After=network-online.target docker.service
+      Wants=network-online.target
+      
+      [Service]
+      Type=oneshot
+      ExecStart=/cocos_init/post_reboot_setup.sh
+      RemainAfterExit=yes
+      
+      [Install]
+      WantedBy=multi-user.target
+    permissions: "0644"
+
+runcmd:
+  - mkdir -p /cocos
+  - mkdir -p /cocos_init
+  - mkdir -p /var/log/cocos
+  - mkdir -p /etc/cocos
+  
+  # Install COCOS agent binary
+  - echo "[ COCOS AGENT SETUP ] Downloading the cocos-agent binary..."
+  - curl -L -O -J https://github.com/ultravioletrs/cocos/releases/download/v0.6.0/cocos-agent --progress-bar && echo "[ COCOS AGENT SETUP ] cocos-agent binary downloaded successfully" || (echo "Failed to download cocos-agent binary" && exit 1)
+  - echo "[ COCOS AGENT SETUP ] Installing cocos-agent binary..."
+  - install -D -m 0755 cocos-agent /bin/cocos-agent && echo "[ COCOS AGENT SETUP ] cocos-agent binary installed successfully" || (echo "[ COCOS AGENT SETUP ] Failed to install cocos-agent binary" && exit 1)
+
+  # Install WasmEdge runtime with better error handling
+  - echo "Installing WasmEdge runtime..."
+  - curl -sSf https://raw.githubusercontent.com/WasmEdge/WasmEdge/master/utils/install.sh | bash -s -- -v 0.13.5 && echo "WasmEdge installed successfully" || (echo "Failed to install WasmEdge" && exit 1)
+
+  - echo "Moving WasmEdge to system path..."
+  - cp -r /root/.wasmedge/bin/* /usr/local/bin/ && echo "WasmEdge binaries moved to /usr/local/bin" || (echo "Failed to move WasmEdge binaries" && exit 1)
+
+  - echo "Moving WasmEdge shared libraries to /usr/local/lib..."
+  - cp -r /root/.wasmedge/lib/* /usr/local/lib/ && echo "Libraries moved successfully" || (echo "Failed to move libraries" && exit 1)
+  - ldconfig && echo "ldconfig updated successfully" || echo "ldconfig failed"
+
+  - echo "Verifying WasmEdge installation..."
+  - wasmedge --version && echo "WasmEdge version verified successfully" || (echo "Failed to verify WasmEdge installation" && exit 1)
+
+  # Install Docker with retry logic
+  - echo "Starting Docker installation..."
+  - for i in 1 2 3; do curl -fsSL https://get.docker.com -o get-docker.sh && break || (echo "Attempt $i failed, retrying..." && sleep 5); done
+  - test -f get-docker.sh || (echo "Failed to download Docker install script after 3 attempts" && exit 1)
+  - sh ./get-docker.sh && echo "Docker installed successfully" || (echo "Failed to install Docker" && exit 1)
+  - usermod -aG docker cocos_user && echo "Added cocos_user to the docker group" || echo "Failed to add cocos_user to the docker group"
+  
+  # Start and enable Docker
+  - systemctl start docker && echo "Docker service started" || (echo "Failed to start Docker service" && exit 1)
+  - systemctl enable docker && echo "Docker service enabled" || echo "Failed to enable Docker service"
+  
+  # Verify Docker is working
+  - timeout 30 docker info && echo "Docker is working correctly" || (echo "Docker verification failed" && exit 1)
+
+  # Disable SSH and SSHD services
+  - echo "Disabling SSH and SSHD services..."
+  - systemctl disable ssh.service && echo "SSH service disabled successfully" || echo "Failed to disable SSH service"
+  - systemctl disable sshd.service && echo "SSHD service disabled successfully" || echo "Failed to disable SSHD service"
+  - systemctl stop ssh.service && echo "SSH service stopped successfully" || echo "Failed to stop SSH service"
+  - systemctl stop sshd.service && echo "SSHD service stopped successfully" || echo "Failed to stop SSHD service"
+
+  # Setup systemd services
+  - echo "[ COCOS AGENT SETUP ] Reloading systemd daemon..."
+  - systemctl daemon-reload && echo "[ COCOS AGENT SETUP ] Systemd daemon reloaded successfully" || echo "[ COCOS AGENT SETUP ] Failed to reload systemd daemon"
+  
+  - echo "[ COCOS AGENT SETUP ] Enabling services..."
+  - systemctl enable cocos-agent.service && echo "[ COCOS AGENT SETUP ] cocos-agent.service enabled successfully" || echo "[ COCOS AGENT SETUP ] Failed to enable cocos-agent.service"
+  - systemctl enable cocos-post-reboot.service && echo "[ COCOS AGENT SETUP ] cocos-post-reboot.service enabled successfully" || echo "[ COCOS AGENT SETUP ] Failed to enable cocos-post-reboot.service"
+
+  # Run verification
+  - /cocos_init/verify_setup.sh
+
+  # Setup IMA (this may trigger a reboot, so do it last)
+  - echo "Setting up Linux IMA policy..."
+  - /cocos_init/linux_ima_init.sh
+
+  # Check if reboot is required
+  - |
+    if [ -f /var/lib/cloud/ima-reboot-required ]; then
+      echo "[ COCOS AGENT SETUP ] IMA setup requires reboot. System will reboot now..."
+      echo "[ COCOS AGENT SETUP ] COCOS agent will start automatically after reboot."
+      # Schedule reboot in 10 seconds to allow cloud-init to finish
+      shutdown -r +1 "Rebooting for IMA policy activation"
+    else
+      echo "[ COCOS AGENT SETUP ] No reboot required, starting cocos-agent.service..."
+      systemctl start cocos-agent.service && echo "[ COCOS AGENT SETUP ] cocos-agent.service started successfully" || echo "[ COCOS AGENT SETUP ] Failed to start cocos-agent.service"
+    fi
+
+final_message: "Cocos agent setup complete. If system rebooted for IMA, the agent will start automatically. Run 'systemctl status cocos-agent.service' to verify service status."
