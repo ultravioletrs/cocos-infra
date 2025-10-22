@@ -318,7 +318,7 @@ runcmd:
   
   # Install COCOS agent binary
   - echo "[ COCOS AGENT SETUP ] Downloading the cocos-agent binary..."
-  - curl -L -O -J https://github.com/ultravioletrs/cocos/releases/download/v0.6.0/cocos-agent --progress-bar && echo "[ COCOS AGENT SETUP ] cocos-agent binary downloaded successfully" || (echo "Failed to download cocos-agent binary" && exit 1)
+  - curl -L -O -J https://github.com/ultravioletrs/cocos/releases/download/v0.8.1/cocos-agent --progress-bar && echo "[ COCOS AGENT SETUP ] cocos-agent binary downloaded successfully" || (echo "Failed to download cocos-agent binary" && exit 1)
   - echo "[ COCOS AGENT SETUP ] Installing cocos-agent binary..."
   - install -D -m 0755 cocos-agent /bin/cocos-agent && echo "[ COCOS AGENT SETUP ] cocos-agent binary installed successfully" || (echo "[ COCOS AGENT SETUP ] Failed to install cocos-agent binary" && exit 1)
 
