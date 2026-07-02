@@ -19,6 +19,12 @@ variable "region" {
   type = string
 }
 
+variable "zone" {
+  type        = string
+  description = "The zone to deploy the VM in. If not specified, defaults to {region}-a"
+  default     = ""
+}
+
 variable "vm_name" {
   type = string
 }
@@ -72,7 +78,7 @@ resource "google_compute_instance" "confidential" {
   name         = var.vm_name
   machine_type = var.machine_type
   min_cpu_platform = var.min_cpu_platform
-  zone         = "${var.region}-a"
+  zone         = var.zone != "" ? var.zone : "${var.region}-a"
   tags = [var.vm_name]
 
   labels = {
