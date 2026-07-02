@@ -29,7 +29,7 @@ write_files:
     permissions: "0644"
 
   - path: /etc/cocos/certs/ca.pem
-    content: 
+    content:
     # This is a placeholder for the COCOS agent CA certificate.
     permissions: "0644"
 
@@ -38,26 +38,185 @@ write_files:
     # This is a placeholder for the COCOS agent private key.
     permissions: "0600"
 
+  # ---------------------------------------------------------------------------
+  # Environment file shared by all in-guest CoCos components.
+  #
+  # All variables are configurable and may be left empty if not applicable.
+  #
+  #   AGENT_CVM_GRPC_URL          - gRPC URL of the computation management
+  #                                 server (host:port).
+  #   AGENT_CVM_GRPC_CLIENT_CERT  - Path to the client TLS certificate (PEM).
+  #   AGENT_CVM_GRPC_SERVER_CA_CERTS - Path to the server CA certificate (PEM).
+  #   AGENT_CVM_GRPC_CLIENT_KEY   - Path to the client TLS private key (PEM).
+  #   AGENT_CVM_CA_URL            - Certificate Authority URL used for automatic
+  #                                 aTLS certificate issuance (leave empty to
+  #                                 disable automatic cert rotation).
+  #   AGENT_CVM_ID                - Unique identifier for this CVM instance
+  #                                 (required when AGENT_CVM_CA_URL is set).
+  #   AGENT_CERTS_TOKEN           - Auth token for the cert issuance CA
+  #                                 (required when AGENT_CVM_CA_URL is set).
+  #   AGENT_MAA_URL               - Microsoft Azure Attestation endpoint
+  #                                 (Azure TDX/SEV-SNP deployments only).
+  #   COCOS_PROXY_PORT            - Listening port for the egress proxy.
+  #                                 Default: 3128.
+  # ---------------------------------------------------------------------------
   - path: /etc/cocos/environment
     content: |
-      AGENT_CVM_GRPC_URL=# Add computation management server gRPC URL here
-      AGENT_CVM_GRPC_CLIENT_CERT=/etc/cocos/certs/cert.pem
-      AGENT_CVM_GRPC_SERVER_CA_CERTS=/etc/cocos/certs/ca.pem
-      AGENT_CVM_GRPC_CLIENT_KEY=/etc/cocos/certs/key.pem
+      # ---- Shared log level ----
       AGENT_LOG_LEVEL=info
+
+      # ---- Agent / Ingress Proxy: CVM management gRPC ----
+      AGENT_CVM_GRPC_URL=
+      AGENT_CVM_GRPC_CLIENT_CERT=
+      AGENT_CVM_GRPC_SERVER_CA_CERTS=
+      AGENT_CVM_GRPC_CLIENT_KEY=
+
+      # ---- aTLS certificate issuance (optional) ----
+      # Leave AGENT_CVM_CA_URL empty to disable automatic cert issuance.
+      AGENT_CVM_CA_URL=
+      AGENT_CVM_ID=
+      AGENT_CERTS_TOKEN=
+
+      # ---- Azure TDX attestation (optional) ----
+      AGENT_MAA_URL=https://sharedeus2.eus2.attest.azure.net
+
+      # ---- Ingress proxy ----
+      # Backend points to the agent's internal gRPC listen port.
+      COCOS_INGRESS_BACKEND=http://localhost:7001
+
+      # ---- Egress proxy ----
+      COCOS_PROXY_PORT=3128
+
+      # ---- Unix socket paths (shared by all in-guest components) ----
+      LOG_FORWARDER_SOCKET=/run/cocos/log.sock
+      ATTESTATION_SERVICE_SOCKET=/run/cocos/attestation.sock
     permissions: "0644"
 
+  # ---------------------------------------------------------------------------
+  # Systemd service: cocos-log-forwarder
+  # Starts first — creates /run/cocos/log.sock used by all other components.
+  # ---------------------------------------------------------------------------
+  - path: /etc/systemd/system/cocos-log-forwarder.service
+    content: |
+      [Unit]
+      Description=Cocos AI Log Forwarder
+      After=network.target
+      Before=cocos-agent.service
+
+      [Service]
+      WorkingDirectory=/cocos
+      StandardOutput=file:/var/log/cocos/log-forwarder.stdout
+      StandardError=file:/var/log/cocos/log-forwarder.stderr
+      EnvironmentFile=/etc/cocos/environment
+      ExecStartPre=/cocos_init/agent_setup.sh
+      ExecStart=/usr/bin/cocos-log-forwarder
+      Restart=always
+      RestartSec=5s
+
+      [Install]
+      WantedBy=default.target
+    permissions: "0644"
+
+  # ---------------------------------------------------------------------------
+  # Systemd service: cocos-computation-runner
+  # Executes computation workloads; communicates with agent via
+  # /run/cocos/runner.sock. Starts after log-forwarder, before agent.
+  # ---------------------------------------------------------------------------
+  - path: /etc/systemd/system/cocos-computation-runner.service
+    content: |
+      [Unit]
+      Description=Cocos AI Computation Runner
+      After=network.target cocos-log-forwarder.service
+      Before=cocos-agent.service
+      Requires=cocos-log-forwarder.service
+
+      [Service]
+      WorkingDirectory=/cocos
+      StandardOutput=file:/var/log/cocos/runner.stdout
+      StandardError=file:/var/log/cocos/runner.stderr
+      EnvironmentFile=/etc/cocos/environment
+      Environment="HTTP_PROXY=http://localhost:3128"
+      Environment="HTTPS_PROXY=http://localhost:3128"
+      Environment="NO_PROXY=localhost,127.0.0.1,.local,/run/cocos/"
+      ExecStart=/usr/bin/cocos-computation-runner --socket-path=/run/cocos/runner.sock
+      Restart=always
+      RestartSec=5s
+
+      [Install]
+      WantedBy=default.target
+    permissions: "0644"
+
+  # ---------------------------------------------------------------------------
+  # Systemd service: cocos-egress-proxy
+  # HTTPS CONNECT proxy for outbound workload traffic. All workload HTTP/HTTPS
+  # requests are routed through this proxy (port 3128 by default).
+  # ---------------------------------------------------------------------------
+  - path: /etc/systemd/system/cocos-egress-proxy.service
+    content: |
+      [Unit]
+      Description=Cocos Egress Proxy Service
+      After=network.target
+
+      [Service]
+      EnvironmentFile=/etc/cocos/environment
+      ExecStart=/usr/bin/cocos-egress-proxy --port=3128
+      Restart=always
+      RestartSec=5s
+      User=root
+      Group=root
+
+      [Install]
+      WantedBy=multi-user.target
+    permissions: "0644"
+
+  # ---------------------------------------------------------------------------
+  # Systemd service: cocos-attestation-service
+  # In-guest hardware attestation service. Exposes an attestation API over
+  # /run/cocos/attestation.sock consumed by cocos-agent.
+  # ---------------------------------------------------------------------------
+  - path: /etc/systemd/system/cocos-attestation-service.service
+    content: |
+      [Unit]
+      Description=Cocos Attestation Service
+      After=network.target
+
+      [Service]
+      Type=simple
+      ExecStartPre=/cocos_init/attestation_setup.sh
+      ExecStart=/usr/bin/cocos-attestation-service
+      Restart=always
+      RestartSec=5s
+      StandardOutput=file:/var/log/cocos/attestation-service.stdout
+      StandardError=file:/var/log/cocos/attestation-service.stderr
+      Environment=ATTESTATION_LOG_LEVEL=debug
+      Environment=ATTESTATION_SERVICE_SOCKET=/run/cocos/attestation.sock
+      Environment=ATTESTATION_VMPL=2
+
+      [Install]
+      WantedBy=multi-user.target
+    permissions: "0644"
+
+  # ---------------------------------------------------------------------------
+  # Systemd service: cocos-agent
+  # Core CVM agent. Depends on log-forwarder, computation-runner, and
+  # egress-proxy being up first. ingress-proxy is managed per-computation
+  # by the agent itself (not a standalone service).
+  # ---------------------------------------------------------------------------
   - path: /etc/systemd/system/cocos-agent.service
     content: |
       [Unit]
       Description=Cocos AI agent
-      After=network.target
+      After=network.target cocos-attestation-service.service cocos-log-forwarder.service cocos-computation-runner.service cocos-egress-proxy.service
+      Requires=cocos-log-forwarder.service cocos-computation-runner.service cocos-egress-proxy.service
       Before=docker.service
 
       [Service]
       Type=simple
       User=root
       WorkingDirectory=/cocos
+      Environment="HTTP_PROXY=http://localhost:3128"
+      Environment="HTTPS_PROXY=http://localhost:3128"
+      Environment="NO_PROXY=localhost,127.0.0.1,.local,/run/cocos/"
       StandardOutput=file:/var/log/cocos/agent.stdout
       StandardError=file:/var/log/cocos/agent.stderr
       EnvironmentFile=/etc/cocos/environment
@@ -72,73 +231,58 @@ write_files:
       WantedBy=multi-user.target
     permissions: "0644"
 
+  # ---------------------------------------------------------------------------
+  # agent_setup.sh — network interface bringup + work directory creation.
+  # Called by cocos-log-forwarder (ExecStartPre) and cocos-agent (ExecStartPre).
+  # ---------------------------------------------------------------------------
   - path: /cocos_init/agent_setup.sh
     content: |
-      #!/bin/bash
-      set -e
+      #!/bin/sh
 
       WORK_DIR="/cocos"
-      LOG_FILE="/var/log/cocos/setup.log"
 
-      # Ensure log directory exists
-      mkdir -p /var/log/cocos
-
-      echo "$(date): Starting agent setup..." | tee -a "$LOG_FILE"
-
-      # Network interface setup
+      # Bring up all non-loopback network interfaces and obtain DHCP leases.
       IFACES=$(ip link show | grep -vE 'LOOPBACK|sit*' | awk -F': ' '{print $2}')
 
       for IFACE in $IFACES; do
           STATE=$(ip link show $IFACE | grep DOWN || true)
           if [ -n "$STATE" ]; then
-              echo "$(date): Bringing up interface $IFACE" | tee -a "$LOG_FILE"
               ip link set $IFACE up
           fi
 
           IP_ADDR=$(ip addr show $IFACE | grep 'inet ' || true)
           if [ -z "$IP_ADDR" ]; then
-              echo "$(date): Getting IP for interface $IFACE" | tee -a "$LOG_FILE"
-              dhclient $IFACE || echo "$(date): DHCP failed for $IFACE" | tee -a "$LOG_FILE"
+              dhclient $IFACE || true
           fi
       done
 
-      # Create work directory
       if [ ! -d "$WORK_DIR" ]; then
           mkdir -p $WORK_DIR
-          echo "$(date): Created work directory $WORK_DIR" | tee -a "$LOG_FILE"
       fi
 
-      # Resize root filesystem
-      ROOT_DEV=$(findmnt / -o SOURCE -n)
-      if resize2fs "$ROOT_DEV" 2>/dev/null; then
-          echo "$(date): Root filesystem resized successfully" | tee -a "$LOG_FILE"
-      else
-          echo "$(date): Failed to resize root filesystem or already at maximum size" | tee -a "$LOG_FILE"
+      # RAM-only agent images use tmpfs as the root filesystem.
+      ROOT_FSTYPE=$(awk '$2 == "/" { print $3; exit }' /proc/mounts)
+      if [ "$ROOT_FSTYPE" = "tmpfs" ]; then
+          mount -o remount,size=100% /
       fi
 
-      # Wait for Docker to be ready
-      echo "$(date): Waiting for Docker to be ready..." | tee -a "$LOG_FILE"
-      for i in {1..30}; do
-          if docker info >/dev/null 2>&1; then
-              echo "$(date): Docker is ready" | tee -a "$LOG_FILE"
-              break
-          fi
-          echo "$(date): Docker not ready, waiting... (attempt $i/30)" | tee -a "$LOG_FILE"
-          sleep 2
-      done
-
-      echo "$(date): Agent setup completed successfully" | tee -a "$LOG_FILE"
+      # Disk-based images: resize root filesystem to use full partition.
+      if [ "$ROOT_FSTYPE" = "ext4" ]; then
+          ROOT_DEV=$(findmnt / -o SOURCE -n)
+          resize2fs "$ROOT_DEV" 2>/dev/null || true
+      fi
     permissions: "0755"
 
+  # ---------------------------------------------------------------------------
+  # agent_start_script.sh — configures Docker for RAM operation and starts
+  # the agent binary with the correct AGENT_GRPC_HOST derived from the
+  # default network interface IP address.
+  # ---------------------------------------------------------------------------
   - path: /cocos_init/agent_start_script.sh
     content: |
-      #!/bin/bash
-      set -e
+      #!/bin/sh
 
-      LOG_FILE="/var/log/cocos/agent.log"
-      echo "$(date): Starting COCOS agent..." | tee -a "$LOG_FILE"
-
-      # Configure Docker daemon
+      # Configure Docker daemon to run in RAM (DOCKER_RAMDISK).
       mkdir -p /etc/systemd/system/docker.service.d
 
       tee /etc/systemd/system/docker.service.d/override.conf > /dev/null <<EOF
@@ -153,7 +297,7 @@ write_files:
       NUM_OF_IFACE=$(ip route | grep -Eo 'dev [a-z0-9]+' | awk '{ print $2 }' | grep -v '^docker' | sort | uniq | wc -l)
 
       if [ $NUM_OF_IFACE -gt $NUM_OF_PERMITED_IFACE ]; then
-          echo "$(date): ERROR: More than one network interface in the VM" | tee -a "$LOG_FILE"
+          echo "ERROR: More than one network interface in the VM"
           exit 1
       fi
 
@@ -161,41 +305,49 @@ write_files:
       AGENT_GRPC_HOST=$(ip -4 addr show $DEFAULT_IFACE | grep inet | awk '{print $2}' | cut -d/ -f1)
 
       export AGENT_GRPC_HOST
-      echo "$(date): Agent GRPC host set to: $AGENT_GRPC_HOST" | tee -a "$LOG_FILE"
 
-      echo "$(date): Executing COCOS agent binary..." | tee -a "$LOG_FILE"
-      exec /bin/cocos-agent
+      exec /usr/bin/cocos-agent
     permissions: "0755"
-  
+
+  # ---------------------------------------------------------------------------
+  # attestation_setup.sh — creates the /run/cocos socket directory with
+  # correct permissions before the attestation service starts.
+  # ---------------------------------------------------------------------------
+  - path: /cocos_init/attestation_setup.sh
+    content: |
+      #!/bin/bash
+      set -e
+
+      mkdir -p /run/cocos
+      chmod 755 /run/cocos
+    permissions: "0755"
+
   - path: /cocos_init/linux_ima_init.sh
     content: |
       #!/bin/bash
-      
+
       GRUB_FILE="/etc/default/grub"
       LOG_FILE="/var/log/cocos/ima_setup.log"
       REBOOT_FLAG="/var/lib/cloud/ima-reboot-required"
-      
+
       mkdir -p /var/log/cocos
       echo "$(date): Starting IMA setup..." | tee -a "$LOG_FILE"
-      
+
       if ! grep -q '^GRUB_CMDLINE_LINUX=.*ima_policy' "$GRUB_FILE"; then
         echo "$(date): Setting up IMA policy for next boot" | tee -a "$LOG_FILE"
         NEW_PARAMS='ima_policy=tcb'
-        
-        # Backup original GRUB config
+
         cp "$GRUB_FILE" "$GRUB_FILE.backup"
-        
-        # Modify the GRUB_CMDLINE_LINUX line
+
         sed -i -E \
             "s#^(GRUB_CMDLINE_LINUX=\")(.*)(\")#\1\2 $NEW_PARAMS\3#" \
             "$GRUB_FILE"
-      
+
         echo "$(date): Updated GRUB_CMDLINE_LINUX:" | tee -a "$LOG_FILE"
         grep "^GRUB_CMDLINE_LINUX=" "$GRUB_FILE" | tee -a "$LOG_FILE"
-        
+
         if update-grub; then
             echo "$(date): GRUB updated successfully" | tee -a "$LOG_FILE"
-            # Create reboot flag
             touch "$REBOOT_FLAG"
             echo "$(date): IMA policy will be active after reboot" | tee -a "$LOG_FILE"
             return 0
@@ -205,7 +357,6 @@ write_files:
         fi
       else
         echo "$(date): IMA policy already configured, warming up measurement cache..." | tee -a "$LOG_FILE"
-        # IMA is already active, warm up the measurement cache
         find / -fstype ext4 -type f -uid 0 -exec dd if='{}' of=/dev/null count=0 status=none \; 2>/dev/null || true
         echo "$(date): IMA cache warmed up" | tee -a "$LOG_FILE"
       fi
@@ -214,29 +365,22 @@ write_files:
   - path: /cocos_init/verify_setup.sh
     content: |
       #!/bin/bash
-      
+
       LOG_FILE="/var/log/cocos/verification.log"
       mkdir -p /var/log/cocos
-      
+
       echo "$(date): === COCOS Setup Verification ===" | tee -a "$LOG_FILE"
-      
-      # Check cocos-agent binary
-      if [ -f /bin/cocos-agent ]; then
-          echo "$(date): ✓ COCOS agent binary installed" | tee -a "$LOG_FILE"
-      else
-          echo "$(date): ✗ COCOS agent binary missing" | tee -a "$LOG_FILE"
-          exit 1
-      fi
-      
-      # Check WasmEdge
-      if command -v wasmedge >/dev/null 2>&1; then
-          VERSION=$(wasmedge --version 2>&1 | head -1)
-          echo "$(date): ✓ WasmEdge installed: $VERSION" | tee -a "$LOG_FILE"
-      else
-          echo "$(date): ✗ WasmEdge not found" | tee -a "$LOG_FILE"
-          exit 1
-      fi
-      
+
+      # Check all in-guest CoCos binaries
+      for binary in cocos-agent cocos-log-forwarder cocos-computation-runner cocos-egress-proxy cocos-ingress-proxy cocos-attestation-service; do
+          if [ -f "/usr/bin/$binary" ]; then
+              echo "$(date): ✓ $binary installed at /usr/bin/$binary" | tee -a "$LOG_FILE"
+          else
+              echo "$(date): ✗ $binary missing from /usr/bin/" | tee -a "$LOG_FILE"
+              exit 1
+          fi
+      done
+
       # Check Docker
       if systemctl is-active --quiet docker; then
           VERSION=$(docker --version)
@@ -245,14 +389,16 @@ write_files:
           echo "$(date): ✗ Docker service not running" | tee -a "$LOG_FILE"
           exit 1
       fi
-      
-      # Check cocos-agent service
-      if systemctl is-enabled --quiet cocos-agent.service; then
-          echo "$(date): ✓ COCOS agent service enabled" | tee -a "$LOG_FILE"
-      else
-          echo "$(date): ✗ COCOS agent service not enabled" | tee -a "$LOG_FILE"
-      fi
-      
+
+      # Check all CoCos services are enabled
+      for svc in cocos-agent cocos-log-forwarder cocos-computation-runner cocos-egress-proxy cocos-attestation-service; do
+          if systemctl is-enabled --quiet ${svc}.service; then
+              echo "$(date): ✓ ${svc}.service enabled" | tee -a "$LOG_FILE"
+          else
+              echo "$(date): ✗ ${svc}.service not enabled" | tee -a "$LOG_FILE"
+          fi
+      done
+
       echo "$(date): === Setup verification complete ===" | tee -a "$LOG_FILE"
     permissions: "0755"
 
@@ -260,36 +406,36 @@ write_files:
   - path: /cocos_init/post_reboot_setup.sh
     content: |
       #!/bin/bash
-      
+
       LOG_FILE="/var/log/cocos/post_reboot.log"
       REBOOT_FLAG="/var/lib/cloud/ima-reboot-required"
-      
+
       mkdir -p /var/log/cocos
       echo "$(date): Post-reboot setup starting..." | tee -a "$LOG_FILE"
-      
-      # Check if this was an IMA reboot
+
       if [ -f "$REBOOT_FLAG" ]; then
           echo "$(date): Detected post-IMA reboot, cleaning up..." | tee -a "$LOG_FILE"
           rm -f "$REBOOT_FLAG"
-          
-          # Warm up IMA measurement cache
+
           echo "$(date): Warming up IMA measurement cache..." | tee -a "$LOG_FILE"
           find / -fstype ext4 -type f -uid 0 -exec dd if='{}' of=/dev/null count=0 status=none \; 2>/dev/null || true
           echo "$(date): IMA cache warmed up" | tee -a "$LOG_FILE"
       fi
-      
+
       # Ensure Docker is running
       if ! systemctl is-active --quiet docker; then
           echo "$(date): Starting Docker service..." | tee -a "$LOG_FILE"
           systemctl start docker
       fi
-      
-      # Start cocos-agent service if not running
-      if ! systemctl is-active --quiet cocos-agent.service; then
-          echo "$(date): Starting cocos-agent service..." | tee -a "$LOG_FILE"
-          systemctl start cocos-agent.service
-      fi
-      
+
+      # Start all CoCos services if not already running
+      for svc in cocos-log-forwarder cocos-computation-runner cocos-egress-proxy cocos-attestation-service cocos-agent; do
+          if ! systemctl is-active --quiet ${svc}.service; then
+              echo "$(date): Starting ${svc}.service..." | tee -a "$LOG_FILE"
+              systemctl start ${svc}.service
+          fi
+      done
+
       echo "$(date): Post-reboot setup completed" | tee -a "$LOG_FILE"
     permissions: "0755"
 
@@ -300,12 +446,12 @@ write_files:
       Description=COCOS post-reboot setup
       After=network-online.target docker.service
       Wants=network-online.target
-      
+
       [Service]
       Type=oneshot
       ExecStart=/cocos_init/post_reboot_setup.sh
       RemainAfterExit=yes
-      
+
       [Install]
       WantedBy=multi-user.target
     permissions: "0644"
@@ -315,25 +461,43 @@ runcmd:
   - mkdir -p /cocos_init
   - mkdir -p /var/log/cocos
   - mkdir -p /etc/cocos
-  
-  # Install COCOS agent binary
-  - echo "[ COCOS AGENT SETUP ] Downloading the cocos-agent binary..."
-  - curl -L -O -J https://github.com/ultravioletrs/cocos/releases/download/v0.8.1/cocos-agent --progress-bar && echo "[ COCOS AGENT SETUP ] cocos-agent binary downloaded successfully" || (echo "Failed to download cocos-agent binary" && exit 1)
-  - echo "[ COCOS AGENT SETUP ] Installing cocos-agent binary..."
-  - install -D -m 0755 cocos-agent /bin/cocos-agent && echo "[ COCOS AGENT SETUP ] cocos-agent binary installed successfully" || (echo "[ COCOS AGENT SETUP ] Failed to install cocos-agent binary" && exit 1)
+  - mkdir -p /run/cocos
+  - chmod 755 /run/cocos
 
-  # Install WasmEdge runtime with better error handling
+  # ---------------------------------------------------------------------------
+  # Install all in-guest CoCos AI v0.10.0 binaries
+  # ---------------------------------------------------------------------------
+  - echo "[ COCOS SETUP ] Downloading cocos-agent v0.10.0..."
+  - curl -L -O -J https://github.com/ultravioletrs/cocos/releases/download/v0.10.0/cocos-agent --progress-bar && echo "[ COCOS SETUP ] cocos-agent downloaded" || (echo "Failed to download cocos-agent" && exit 1)
+  - install -D -m 0755 cocos-agent /usr/bin/cocos-agent && echo "[ COCOS SETUP ] cocos-agent installed" || (echo "Failed to install cocos-agent" && exit 1)
+
+  - echo "[ COCOS SETUP ] Downloading cocos-log-forwarder v0.10.0..."
+  - curl -L -O -J https://github.com/ultravioletrs/cocos/releases/download/v0.10.0/cocos-log-forwarder --progress-bar && echo "[ COCOS SETUP ] cocos-log-forwarder downloaded" || (echo "Failed to download cocos-log-forwarder" && exit 1)
+  - install -D -m 0755 cocos-log-forwarder /usr/bin/cocos-log-forwarder && echo "[ COCOS SETUP ] cocos-log-forwarder installed" || (echo "Failed to install cocos-log-forwarder" && exit 1)
+
+  - echo "[ COCOS SETUP ] Downloading cocos-computation-runner v0.10.0..."
+  - curl -L -O -J https://github.com/ultravioletrs/cocos/releases/download/v0.10.0/cocos-computation-runner --progress-bar && echo "[ COCOS SETUP ] cocos-computation-runner downloaded" || (echo "Failed to download cocos-computation-runner" && exit 1)
+  - install -D -m 0755 cocos-computation-runner /usr/bin/cocos-computation-runner && echo "[ COCOS SETUP ] cocos-computation-runner installed" || (echo "Failed to install cocos-computation-runner" && exit 1)
+
+  - echo "[ COCOS SETUP ] Downloading cocos-egress-proxy v0.10.0..."
+  - curl -L -O -J https://github.com/ultravioletrs/cocos/releases/download/v0.10.0/cocos-egress-proxy --progress-bar && echo "[ COCOS SETUP ] cocos-egress-proxy downloaded" || (echo "Failed to download cocos-egress-proxy" && exit 1)
+  - install -D -m 0755 cocos-egress-proxy /usr/bin/cocos-egress-proxy && echo "[ COCOS SETUP ] cocos-egress-proxy installed" || (echo "Failed to install cocos-egress-proxy" && exit 1)
+
+  - echo "[ COCOS SETUP ] Downloading cocos-ingress-proxy v0.10.0..."
+  - curl -L -O -J https://github.com/ultravioletrs/cocos/releases/download/v0.10.0/cocos-ingress-proxy --progress-bar && echo "[ COCOS SETUP ] cocos-ingress-proxy downloaded" || (echo "Failed to download cocos-ingress-proxy" && exit 1)
+  - install -D -m 0755 cocos-ingress-proxy /usr/bin/cocos-ingress-proxy && echo "[ COCOS SETUP ] cocos-ingress-proxy installed" || (echo "Failed to install cocos-ingress-proxy" && exit 1)
+
+  - echo "[ COCOS SETUP ] Downloading cocos-attestation-service v0.10.0..."
+  - curl -L -O -J https://github.com/ultravioletrs/cocos/releases/download/v0.10.0/cocos-attestation-service --progress-bar && echo "[ COCOS SETUP ] cocos-attestation-service downloaded" || (echo "Failed to download cocos-attestation-service" && exit 1)
+  - install -D -m 0755 cocos-attestation-service /usr/bin/cocos-attestation-service && echo "[ COCOS SETUP ] cocos-attestation-service installed" || (echo "Failed to install cocos-attestation-service" && exit 1)
+
+  # Install WasmEdge runtime
   - echo "Installing WasmEdge runtime..."
   - curl -sSf https://raw.githubusercontent.com/WasmEdge/WasmEdge/master/utils/install.sh | bash -s -- -v 0.13.5 && echo "WasmEdge installed successfully" || (echo "Failed to install WasmEdge" && exit 1)
-
   - echo "Moving WasmEdge to system path..."
   - cp -r /root/.wasmedge/bin/* /usr/local/bin/ && echo "WasmEdge binaries moved to /usr/local/bin" || (echo "Failed to move WasmEdge binaries" && exit 1)
-
-  - echo "Moving WasmEdge shared libraries to /usr/local/lib..."
   - cp -r /root/.wasmedge/lib/* /usr/local/lib/ && echo "Libraries moved successfully" || (echo "Failed to move libraries" && exit 1)
   - ldconfig && echo "ldconfig updated successfully" || echo "ldconfig failed"
-
-  - echo "Verifying WasmEdge installation..."
   - wasmedge --version && echo "WasmEdge version verified successfully" || (echo "Failed to verify WasmEdge installation" && exit 1)
 
   # Install Docker with retry logic
@@ -342,28 +506,30 @@ runcmd:
   - test -f get-docker.sh || (echo "Failed to download Docker install script after 3 attempts" && exit 1)
   - sh ./get-docker.sh && echo "Docker installed successfully" || (echo "Failed to install Docker" && exit 1)
   - usermod -aG docker cocos_user && echo "Added cocos_user to the docker group" || echo "Failed to add cocos_user to the docker group"
-  
+
   # Start and enable Docker
   - systemctl start docker && echo "Docker service started" || (echo "Failed to start Docker service" && exit 1)
   - systemctl enable docker && echo "Docker service enabled" || echo "Failed to enable Docker service"
-  
-  # Verify Docker is working
   - timeout 30 docker info && echo "Docker is working correctly" || (echo "Docker verification failed" && exit 1)
 
   # Disable SSH and SSHD services
   - echo "Disabling SSH and SSHD services..."
-  - systemctl disable ssh.service && echo "SSH service disabled successfully" || echo "Failed to disable SSH service"
-  - systemctl disable sshd.service && echo "SSHD service disabled successfully" || echo "Failed to disable SSHD service"
-  - systemctl stop ssh.service && echo "SSH service stopped successfully" || echo "Failed to stop SSH service"
-  - systemctl stop sshd.service && echo "SSHD service stopped successfully" || echo "Failed to stop SSHD service"
+  - systemctl disable ssh.service && echo "SSH service disabled" || echo "Failed to disable SSH service"
+  - systemctl disable sshd.service && echo "SSHD service disabled" || echo "Failed to disable SSHD service"
+  - systemctl stop ssh.service && echo "SSH service stopped" || echo "Failed to stop SSH service"
+  - systemctl stop sshd.service && echo "SSHD service stopped" || echo "Failed to stop SSHD service"
 
   # Setup systemd services
-  - echo "[ COCOS AGENT SETUP ] Reloading systemd daemon..."
-  - systemctl daemon-reload && echo "[ COCOS AGENT SETUP ] Systemd daemon reloaded successfully" || echo "[ COCOS AGENT SETUP ] Failed to reload systemd daemon"
-  
-  - echo "[ COCOS AGENT SETUP ] Enabling services..."
-  - systemctl enable cocos-agent.service && echo "[ COCOS AGENT SETUP ] cocos-agent.service enabled successfully" || echo "[ COCOS AGENT SETUP ] Failed to enable cocos-agent.service"
-  - systemctl enable cocos-post-reboot.service && echo "[ COCOS AGENT SETUP ] cocos-post-reboot.service enabled successfully" || echo "[ COCOS AGENT SETUP ] Failed to enable cocos-post-reboot.service"
+  - echo "[ COCOS SETUP ] Reloading systemd daemon..."
+  - systemctl daemon-reload && echo "[ COCOS SETUP ] Systemd daemon reloaded" || echo "[ COCOS SETUP ] Failed to reload systemd daemon"
+
+  - echo "[ COCOS SETUP ] Enabling CoCos services..."
+  - systemctl enable cocos-log-forwarder.service && echo "[ COCOS SETUP ] cocos-log-forwarder.service enabled" || echo "[ COCOS SETUP ] Failed to enable cocos-log-forwarder.service"
+  - systemctl enable cocos-computation-runner.service && echo "[ COCOS SETUP ] cocos-computation-runner.service enabled" || echo "[ COCOS SETUP ] Failed to enable cocos-computation-runner.service"
+  - systemctl enable cocos-egress-proxy.service && echo "[ COCOS SETUP ] cocos-egress-proxy.service enabled" || echo "[ COCOS SETUP ] Failed to enable cocos-egress-proxy.service"
+  - systemctl enable cocos-attestation-service.service && echo "[ COCOS SETUP ] cocos-attestation-service.service enabled" || echo "[ COCOS SETUP ] Failed to enable cocos-attestation-service.service"
+  - systemctl enable cocos-agent.service && echo "[ COCOS SETUP ] cocos-agent.service enabled" || echo "[ COCOS SETUP ] Failed to enable cocos-agent.service"
+  - systemctl enable cocos-post-reboot.service && echo "[ COCOS SETUP ] cocos-post-reboot.service enabled" || echo "[ COCOS SETUP ] Failed to enable cocos-post-reboot.service"
 
   # Run verification
   - /cocos_init/verify_setup.sh
@@ -375,13 +541,16 @@ runcmd:
   # Check if reboot is required
   - |
     if [ -f /var/lib/cloud/ima-reboot-required ]; then
-      echo "[ COCOS AGENT SETUP ] IMA setup requires reboot. System will reboot now..."
-      echo "[ COCOS AGENT SETUP ] COCOS agent will start automatically after reboot."
-      # Schedule reboot in 10 seconds to allow cloud-init to finish
+      echo "[ COCOS SETUP ] IMA setup requires reboot. System will reboot now..."
+      echo "[ COCOS SETUP ] All CoCos services will start automatically after reboot."
       shutdown -r +1 "Rebooting for IMA policy activation"
     else
-      echo "[ COCOS AGENT SETUP ] No reboot required, starting cocos-agent.service..."
-      systemctl start cocos-agent.service && echo "[ COCOS AGENT SETUP ] cocos-agent.service started successfully" || echo "[ COCOS AGENT SETUP ] Failed to start cocos-agent.service"
+      echo "[ COCOS SETUP ] No reboot required, starting CoCos services..."
+      systemctl start cocos-log-forwarder.service && echo "[ COCOS SETUP ] cocos-log-forwarder.service started" || echo "[ COCOS SETUP ] Failed to start cocos-log-forwarder.service"
+      systemctl start cocos-computation-runner.service && echo "[ COCOS SETUP ] cocos-computation-runner.service started" || echo "[ COCOS SETUP ] Failed to start cocos-computation-runner.service"
+      systemctl start cocos-egress-proxy.service && echo "[ COCOS SETUP ] cocos-egress-proxy.service started" || echo "[ COCOS SETUP ] Failed to start cocos-egress-proxy.service"
+      systemctl start cocos-attestation-service.service && echo "[ COCOS SETUP ] cocos-attestation-service.service started" || echo "[ COCOS SETUP ] Failed to start cocos-attestation-service.service"
+      systemctl start cocos-agent.service && echo "[ COCOS SETUP ] cocos-agent.service started" || echo "[ COCOS SETUP ] Failed to start cocos-agent.service"
     fi
 
-final_message: "Cocos agent setup complete. If system rebooted for IMA, the agent will start automatically. Run 'systemctl status cocos-agent.service' to verify service status."
+final_message: "CoCos AI v0.10.0 setup complete. Run 'systemctl status cocos-agent cocos-log-forwarder cocos-computation-runner cocos-egress-proxy cocos-attestation-service' to verify all services."
