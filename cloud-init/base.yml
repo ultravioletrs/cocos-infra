@@ -465,30 +465,30 @@ runcmd:
   - chmod 755 /run/cocos
 
   # ---------------------------------------------------------------------------
-  # Install all in-guest CoCos AI v0.10.0 binaries
+  # Install all in-guest CoCos AI v0.10.1 binaries
   # ---------------------------------------------------------------------------
-  - echo "[ COCOS SETUP ] Downloading cocos-agent v0.10.0..."
-  - curl -L -O -J https://github.com/ultravioletrs/cocos/releases/download/v0.10.0/cocos-agent --progress-bar && echo "[ COCOS SETUP ] cocos-agent downloaded" || (echo "Failed to download cocos-agent" && exit 1)
+  - echo "[ COCOS SETUP ] Downloading cocos-agent v0.10.1..."
+  - curl -L -O -J https://github.com/ultravioletrs/cocos/releases/download/v0.10.1/cocos-agent --progress-bar && echo "[ COCOS SETUP ] cocos-agent downloaded" || (echo "Failed to download cocos-agent" && exit 1)
   - install -D -m 0755 cocos-agent /usr/bin/cocos-agent && echo "[ COCOS SETUP ] cocos-agent installed" || (echo "Failed to install cocos-agent" && exit 1)
 
-  - echo "[ COCOS SETUP ] Downloading cocos-log-forwarder v0.10.0..."
-  - curl -L -O -J https://github.com/ultravioletrs/cocos/releases/download/v0.10.0/cocos-log-forwarder --progress-bar && echo "[ COCOS SETUP ] cocos-log-forwarder downloaded" || (echo "Failed to download cocos-log-forwarder" && exit 1)
+  - echo "[ COCOS SETUP ] Downloading cocos-log-forwarder v0.10.1..."
+  - curl -L -O -J https://github.com/ultravioletrs/cocos/releases/download/v0.10.1/cocos-log-forwarder --progress-bar && echo "[ COCOS SETUP ] cocos-log-forwarder downloaded" || (echo "Failed to download cocos-log-forwarder" && exit 1)
   - install -D -m 0755 cocos-log-forwarder /usr/bin/cocos-log-forwarder && echo "[ COCOS SETUP ] cocos-log-forwarder installed" || (echo "Failed to install cocos-log-forwarder" && exit 1)
 
-  - echo "[ COCOS SETUP ] Downloading cocos-computation-runner v0.10.0..."
-  - curl -L -O -J https://github.com/ultravioletrs/cocos/releases/download/v0.10.0/cocos-computation-runner --progress-bar && echo "[ COCOS SETUP ] cocos-computation-runner downloaded" || (echo "Failed to download cocos-computation-runner" && exit 1)
+  - echo "[ COCOS SETUP ] Downloading cocos-computation-runner v0.10.1..."
+  - curl -L -O -J https://github.com/ultravioletrs/cocos/releases/download/v0.10.1/cocos-computation-runner --progress-bar && echo "[ COCOS SETUP ] cocos-computation-runner downloaded" || (echo "Failed to download cocos-computation-runner" && exit 1)
   - install -D -m 0755 cocos-computation-runner /usr/bin/cocos-computation-runner && echo "[ COCOS SETUP ] cocos-computation-runner installed" || (echo "Failed to install cocos-computation-runner" && exit 1)
 
-  - echo "[ COCOS SETUP ] Downloading cocos-egress-proxy v0.10.0..."
-  - curl -L -O -J https://github.com/ultravioletrs/cocos/releases/download/v0.10.0/cocos-egress-proxy --progress-bar && echo "[ COCOS SETUP ] cocos-egress-proxy downloaded" || (echo "Failed to download cocos-egress-proxy" && exit 1)
+  - echo "[ COCOS SETUP ] Downloading cocos-egress-proxy v0.10.1..."
+  - curl -L -O -J https://github.com/ultravioletrs/cocos/releases/download/v0.10.1/cocos-egress-proxy --progress-bar && echo "[ COCOS SETUP ] cocos-egress-proxy downloaded" || (echo "Failed to download cocos-egress-proxy" && exit 1)
   - install -D -m 0755 cocos-egress-proxy /usr/bin/cocos-egress-proxy && echo "[ COCOS SETUP ] cocos-egress-proxy installed" || (echo "Failed to install cocos-egress-proxy" && exit 1)
 
-  - echo "[ COCOS SETUP ] Downloading cocos-ingress-proxy v0.10.0..."
-  - curl -L -O -J https://github.com/ultravioletrs/cocos/releases/download/v0.10.0/cocos-ingress-proxy --progress-bar && echo "[ COCOS SETUP ] cocos-ingress-proxy downloaded" || (echo "Failed to download cocos-ingress-proxy" && exit 1)
+  - echo "[ COCOS SETUP ] Downloading cocos-ingress-proxy v0.10.1..."
+  - curl -L -O -J https://github.com/ultravioletrs/cocos/releases/download/v0.10.1/cocos-ingress-proxy --progress-bar && echo "[ COCOS SETUP ] cocos-ingress-proxy downloaded" || (echo "Failed to download cocos-ingress-proxy" && exit 1)
   - install -D -m 0755 cocos-ingress-proxy /usr/bin/cocos-ingress-proxy && echo "[ COCOS SETUP ] cocos-ingress-proxy installed" || (echo "Failed to install cocos-ingress-proxy" && exit 1)
 
-  - echo "[ COCOS SETUP ] Downloading cocos-attestation-service v0.10.0..."
-  - curl -L -O -J https://github.com/ultravioletrs/cocos/releases/download/v0.10.0/cocos-attestation-service --progress-bar && echo "[ COCOS SETUP ] cocos-attestation-service downloaded" || (echo "Failed to download cocos-attestation-service" && exit 1)
+  - echo "[ COCOS SETUP ] Downloading cocos-attestation-service v0.10.1..."
+  - curl -L -O -J https://github.com/ultravioletrs/cocos/releases/download/v0.10.1/cocos-attestation-service --progress-bar && echo "[ COCOS SETUP ] cocos-attestation-service downloaded" || (echo "Failed to download cocos-attestation-service" && exit 1)
   - install -D -m 0755 cocos-attestation-service /usr/bin/cocos-attestation-service && echo "[ COCOS SETUP ] cocos-attestation-service installed" || (echo "Failed to install cocos-attestation-service" && exit 1)
 
   # Install WasmEdge runtime
@@ -553,4 +553,4 @@ runcmd:
       systemctl start cocos-agent.service && echo "[ COCOS SETUP ] cocos-agent.service started" || echo "[ COCOS SETUP ] Failed to start cocos-agent.service"
     fi
 
-final_message: "CoCos AI v0.10.0 setup complete. Run 'systemctl status cocos-agent cocos-log-forwarder cocos-computation-runner cocos-egress-proxy cocos-attestation-service' to verify all services."
+final_message: "CoCos AI v0.10.1 setup complete. Run 'systemctl status cocos-agent cocos-log-forwarder cocos-computation-runner cocos-egress-proxy cocos-attestation-service' to verify all services."
